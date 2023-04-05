@@ -8,9 +8,20 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@antv/x6": "^2.9.4",
+    "@antv/x6-plugin-clipboard": "^2.1.5",
+    "@antv/x6-plugin-history": "^2.2.0",
+    "@antv/x6-plugin-keyboard": "^2.2.0",
+    "@antv/x6-plugin-selection": "^2.1.5",
+    "@antv/x6-plugin-snapline": "^2.1.6",
+    "@antv/x6-plugin-stencil": "^2.0.2",
+    "@antv/x6-plugin-transform": "^2.1.6",
+    "axios": "^1.3.4",
+    "insert-css": "^2.0.0",
     "vue": "^3.2.47"
   },
   "devDependencies": {
+    "@types/insert-css": "^2.0.1",
     "@vitejs/plugin-vue": "^4.0.0",
     "vite": "^4.1.4"
   }
