@@ -1,5 +1,6 @@
 <template>
   <div id="container"></div>
+  <nodeDrawer :visible="visible" :nodeComponent="nodeComponent"></nodeDrawer>
   <button @click="getData">按钮</button>
 </template>
 
@@ -12,13 +13,32 @@ import {Snapline} from '@antv/x6-plugin-snapline'
 import {Keyboard} from '@antv/x6-plugin-keyboard'
 import {Clipboard} from '@antv/x6-plugin-clipboard'
 import {History} from '@antv/x6-plugin-history'
-import {insertCss} from 'insert-css'
+import insertCss from 'insert-css'
+import {onMounted, ref, provide} from 'vue'
 
-import {onMounted, ref} from 'vue'
+import nodeDrawer from './nodeDrawer.vue'
+import operation from './nodes/operation.vue'
+
 
 let graph = null
-onMounted(() => {
+let nodeComponent = operation
+const visible = ref(false)
+const nodeId = ref('')
+function setVisibleFalse() {
+  visible.value = false
+}
+function updateNodeData(nodeId, k, v) {
+  graph.findViewByCell(nodeId).cell.setData({k: v})
+}
 
+function getData() {
+  console.log(graph.toJSON())
+}
+
+provide('nodeId', nodeId)
+provide('setVisibleFalse', setVisibleFalse)
+provide('updateNodeData', updateNodeData)
+onMounted(() => {
 
 // 为了协助代码演示
   preWork()
@@ -83,6 +103,10 @@ onMounted(() => {
     },
   })
 // #endregion
+  graph.on("node:click", ({e, x, y, node, view}) => {
+    nodeId.value = node.id
+    visible.value = true
+  });
 // #region 使用插件
   graph
       .use(
@@ -492,10 +516,6 @@ onMounted(() => {
   `)
   }
 })
-
-function getData() {
-  console.log(graph.toJSON())
-}
 
 </script>
 <style scoped>

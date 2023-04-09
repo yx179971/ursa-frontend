@@ -16,12 +16,12 @@
     "@antv/x6-plugin-snapline": "^2.1.6",
     "@antv/x6-plugin-stencil": "^2.0.2",
     "@antv/x6-plugin-transform": "^2.1.6",
+    "ant-design-vue": "^3.2.17",
     "axios": "^1.3.4",
     "insert-css": "^2.0.0",
     "vue": "^3.2.47"
   },
   "devDependencies": {
-    "@types/insert-css": "^2.0.1",
     "@vitejs/plugin-vue": "^4.0.0",
     "vite": "^4.1.4"
   }
