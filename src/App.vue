@@ -1,13 +1,11 @@
+<template>
+  <Layout />
+</template>
+
 <script setup>
-import Graph from './components/Graph.vue'
+import Layout from './components/Layout.vue'
 </script>
 
-<template>
-
-  <main>
-    <Graph />
-  </main>
-</template>
 
 <style scoped>
 header {

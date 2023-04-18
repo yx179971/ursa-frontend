@@ -1,10 +1,13 @@
 <template>
   <div id="container"></div>
   <nodeDrawer :visible="visible" :nodeComponent="nodeComponent"></nodeDrawer>
-  <button @click="getData">按钮</button>
+  <button @click="creatJob">添加</button>
+  <button @click="deleteJob">删除</button>
+  <button @click="updateJob">保存</button>
 </template>
 
 <script setup lang="ts">
+import axios from "axios";
 import {Graph, Shape} from '@antv/x6'
 import {Stencil} from '@antv/x6-plugin-stencil'
 import {Transform} from '@antv/x6-plugin-transform'
@@ -18,20 +21,39 @@ import {onMounted, ref, provide} from 'vue'
 
 import nodeDrawer from './nodeDrawer.vue'
 import operation from './nodes/operation.vue'
-
+import conf from "../conf.js"
+import {message} from "ant-design-vue";
 
 let graph = null
+let job = null
 let nodeComponent = operation
 const visible = ref(false)
 const nodeId = ref('')
+
 function setVisibleFalse() {
   visible.value = false
 }
+
 function updateNodeData(nodeId, k, v) {
   graph.findViewByCell(nodeId).cell.setData({k: v})
 }
 
-function getData() {
+function creatJob() {
+  axios.post(conf.host + '/job', {"name": "xxx"})
+  .then(function (response){
+    job = response.data.data
+    console.log(response)
+  })
+  .catch(function (error) {
+    message.error(error.response.data.detail)
+  })
+}
+
+function updateJob() {
+  console.log(graph.toJSON())
+}
+
+function deleteJob() {
   console.log(graph.toJSON())
 }
 
