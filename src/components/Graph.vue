@@ -1,9 +1,8 @@
 <template>
+
+  <button @click="updateJob">保存</button>
   <div id="container"></div>
   <nodeDrawer :visible="visible" :nodeComponent="nodeComponent"></nodeDrawer>
-  <button @click="creatJob">添加</button>
-  <button @click="deleteJob">删除</button>
-  <button @click="updateJob">保存</button>
 </template>
 
 <script setup lang="ts">
@@ -23,6 +22,7 @@ import nodeDrawer from './nodeDrawer.vue'
 import operation from './nodes/operation.vue'
 import conf from "../conf.js"
 import {message} from "ant-design-vue";
+import {Scroller} from "@antv/x6-plugin-scroller";
 
 let graph = null
 let job = null
@@ -38,22 +38,7 @@ function updateNodeData(nodeId, k, v) {
   graph.findViewByCell(nodeId).cell.setData({k: v})
 }
 
-function creatJob() {
-  axios.post(conf.host + '/job', {"name": "xxx"})
-  .then(function (response){
-    job = response.data.data
-    console.log(response)
-  })
-  .catch(function (error) {
-    message.error(error.response.data.detail)
-  })
-}
-
 function updateJob() {
-  console.log(graph.toJSON())
-}
-
-function deleteJob() {
   console.log(graph.toJSON())
 }
 
@@ -69,8 +54,11 @@ onMounted(() => {
   graph = new Graph({
     container: document.getElementById('graph-container')!,
     grid: true,
-    width: 800,
-    height: 600,
+    background: {
+      color: '#F2F7FA',
+    },
+    height: 700,
+    // autoResize: true,
     // mousewheel: {
     //   enabled: true,
     //   zoomAtMousePosition: true,
@@ -164,6 +152,11 @@ onMounted(() => {
             enabled: true,
           }),
       )
+      .use(
+          new Scroller({
+            enabled: true,
+          })
+      )
 // #endregion
 
 // #region 初始化 stencil
@@ -171,7 +164,7 @@ onMounted(() => {
     title: '流程图',
     target: graph,
     stencilGraphWidth: 200,
-    stencilGraphHeight: 300,
+    stencilGraphHeight: 0,
     collapsable: false,
     layoutOptions: {
       columns: 2,
@@ -542,7 +535,7 @@ onMounted(() => {
 </script>
 <style scoped>
 #container {
-  width: 1080px;
-  height: 720px;
+  width: 100%;
+  height: 100%;
 }
 </style>
