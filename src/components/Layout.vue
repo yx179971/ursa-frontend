@@ -21,14 +21,14 @@
             mode="inline"
             :style="{ height: '100%', borderRight: 0 }"
         >
-          <a-sub-menu key="sub1">
+          <a-sub-menu key="jobList">
             <template #title>
               <span>
                 <laptop-outlined/>
                 作业列表
               </span>
             </template>
-            <a-menu-item v-for="job in jobList" @click="displayJob(job)" :key="job.id">{{ job.name }}</a-menu-item>
+            <a-menu-item v-for="job in jobList" :key="job.id">{{ job.name }}</a-menu-item>
           </a-sub-menu>
         </a-menu>
       </a-layout-sider>
@@ -38,13 +38,29 @@
             <a-breadcrumb-item>{{ currentJobName }}</a-breadcrumb-item>
           </a-breadcrumb>
           <a-button @click="creatJob" type="primary" style="width: 100px">新建</a-button>
+          <a-modal v-model:visible="modelVisible" title="新建作业" @ok="handleCreatJob">
+            <a-form
+                ref="formRef"
+                :model="formState"
+                autocomplete="off"
+                name="createJob"
+            >
+              <a-form-item
+                  label="作业名称"
+                  name="jobName"
+                  :rules="[{ required: true, message: '请输入作业名称!' }]"
+              >
+                <a-input v-model:value="formState.jobName"/>
+              </a-form-item>
+            </a-form>
+          </a-modal>
           <a-button @click="deleteJob" type="primary" danger style="width: 100px">删除</a-button>
         </p>
         <p>
           <a-layout-content
               :style="{ background: '#fff', padding: '24px', margin: 0, height: '100%' }"
           >
-            <component :is="graph"/>
+            <Graph :job="currentJob" @display-job="displayJob"/>
           </a-layout-content>
         </p>
       </a-layout>
@@ -54,27 +70,28 @@
 
 <script setup>
 import {UserOutlined, LaptopOutlined, NotificationOutlined} from '@ant-design/icons-vue';
-import {defineComponent, onMounted, ref, computed} from 'vue';
-import graph from './Graph.vue'
+import {defineComponent, watch, ref, computed, provide} from 'vue';
+import Graph from './Graph.vue'
 import axios from "axios";
 import conf from '../conf.js'
+import utils from '../utils.js'
 import {message} from "ant-design-vue";
 
 const selectedKeys1 = ref(['2'])
 const selectedKeys2 = ref([])
-const openKeys = ref(['sub1'])
+const openKeys = ref(['jobList'])
 
 // 获取作业列表
 const jobList = ref([])
 
 function getJobList() {
   axios.get(conf.host + '/jobs').then(function (response) {
-    jobList.value = response.data
+    jobList.value = response.data.data
     if (!currentJob.value) {
       displayJob(jobList.value[0])
     }
   }).catch(function (error) {
-    message.error(error.response.data.detail)
+    utils.raiseError(error)
   })
 }
 
@@ -92,16 +109,45 @@ const currentJobName = computed(() => {
   return currentJob.value ? currentJob.value.name : ''
 })
 
+watch(selectedKeys2, async () => {
+  if (selectedKeys2.value.length > 0) {
+    axios.get(conf.host + '/job/' + selectedKeys2.value[0])
+        .then(function (response) {
+          currentJob.value = response.data.data
+        })
+        .catch(function (error) {
+          utils.raiseError(error)
+        })
+  }
+}, {immediate: true})
+
 // 新建
+const modelVisible = ref(false)
+
 function creatJob() {
-  axios.post(conf.host + '/job', {"name": "sss"})
-      .then(function (response) {
-        getJobList()
-        displayJob(response.data.data)
-      })
-      .catch(function (error) {
-        message.error(error.response.data.detail)
-      })
+  modelVisible.value = true
+}
+
+const formRef = ref(null)
+const formState = ref({
+  jobName: '',
+});
+
+function handleCreatJob() {
+  const jobName = formState.value.jobName
+  if (jobName) {
+    axios.post(conf.host + '/job', {"name": jobName})
+        .then(function (response) {
+          getJobList()
+          displayJob(response.data.data)
+          modelVisible.value = false
+        })
+        .catch(function (error) {
+          utils.raiseError(error)
+        })
+  } else {
+    formRef.value.validateFields(['jobName']);
+  }
 }
 
 // 删除
@@ -112,7 +158,7 @@ function deleteJob() {
         getJobList()
       })
       .catch(function (error) {
-        message.error(error.response.data.detail)
+        utils.raiseError(error)
       })
 }
 </script>

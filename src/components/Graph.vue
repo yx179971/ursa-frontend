@@ -1,8 +1,7 @@
 <template>
-
-  <button @click="updateJob">保存</button>
+  <a-button @click="updateJob" style="width: 100px">保存</a-button>
   <div id="container"></div>
-  <nodeDrawer :visible="visible" :nodeComponent="nodeComponent"></nodeDrawer>
+  <NodeDrawer :visible="visible" :nodeComponent="Operation"></NodeDrawer>
 </template>
 
 <script setup lang="ts">
@@ -16,17 +15,27 @@ import {Keyboard} from '@antv/x6-plugin-keyboard'
 import {Clipboard} from '@antv/x6-plugin-clipboard'
 import {History} from '@antv/x6-plugin-history'
 import insertCss from 'insert-css'
-import {onMounted, ref, provide} from 'vue'
+import {onMounted, ref, provide, watch, inject} from 'vue'
 
-import nodeDrawer from './nodeDrawer.vue'
-import operation from './nodes/operation.vue'
+import NodeDrawer from './NodeDrawer.vue'
+import Operation from './nodes/Operation.vue'
 import conf from "../conf.js"
+import utils from "../utils.js"
 import {message} from "ant-design-vue";
 import {Scroller} from "@antv/x6-plugin-scroller";
 
 let graph = null
-let job = null
-let nodeComponent = operation
+const props = defineProps(['job'])
+watch(
+    () => props.job,
+    (job) => {
+      graph.fromJSON(job.config.cells ? job.config.cells : [])
+    }
+)
+const emit = defineEmits(['displayJob'])
+function displayJob(job) {
+  emit('displayJob', job)
+}
 const visible = ref(false)
 const nodeId = ref('')
 
@@ -39,7 +48,17 @@ function updateNodeData(nodeId, k, v) {
 }
 
 function updateJob() {
-  console.log(graph.toJSON())
+  axios.put(conf.host + '/job/' + props.job.id, {
+    "id": props.job.id,
+    "name": props.job.name,
+    "config": graph.toJSON()
+  })
+      .then(function (response) {
+        displayJob(response.data.data)
+      })
+      .catch(function (error) {
+        utils.raiseError(error)
+      })
 }
 
 provide('nodeId', nodeId)
