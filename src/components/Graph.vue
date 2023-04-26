@@ -1,7 +1,7 @@
 <template>
   <a-button @click="updateJob" style="width: 100px">保存</a-button>
   <div id="container"></div>
-  <NodeDrawer :visible="visible" :nodeComponent="Operation"></NodeDrawer>
+  <NodeDrawer :visible="visible" :nodeComponent="Operation" :nodeData="currentNodeData"></NodeDrawer>
 </template>
 
 <script setup lang="ts">
@@ -15,7 +15,7 @@ import {Keyboard} from '@antv/x6-plugin-keyboard'
 import {Clipboard} from '@antv/x6-plugin-clipboard'
 import {History} from '@antv/x6-plugin-history'
 import insertCss from 'insert-css'
-import {onMounted, ref, provide, watch, inject} from 'vue'
+import {onMounted, ref, provide, watch} from 'vue'
 
 import NodeDrawer from './NodeDrawer.vue'
 import Operation from './nodes/Operation.vue'
@@ -33,9 +33,11 @@ watch(
     }
 )
 const emit = defineEmits(['displayJob'])
+
 function displayJob(job) {
   emit('displayJob', job)
 }
+
 const visible = ref(false)
 const nodeId = ref('')
 
@@ -43,9 +45,17 @@ function setVisibleFalse() {
   visible.value = false
 }
 
-function updateNodeData(nodeId, k, v) {
-  graph.findViewByCell(nodeId).cell.setData({k: v})
+function updateNodeData(nodeId, attrs, data) {
+  for (const k in attrs) {
+    graph.findViewByCell(nodeId).cell.setAttrByPath(k, attrs[k])
+  }
+  for (const k in data) {
+    graph.findViewByCell(nodeId).cell.setData({[k]: data[k]})
+  }
+  updateJob()
 }
+
+const currentNodeData = ref(null)
 
 function updateJob() {
   axios.put(conf.host + '/job/' + props.job.id, {
@@ -135,6 +145,7 @@ onMounted(() => {
   graph.on("node:click", ({e, x, y, node, view}) => {
     nodeId.value = node.id
     visible.value = true
+    currentNodeData.value = node
   });
 // #region 使用插件
   graph

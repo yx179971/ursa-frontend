@@ -134,8 +134,7 @@ const formState = ref({
 });
 
 function handleCreatJob() {
-  const jobName = formState.value.jobName
-  if (jobName) {
+  formRef.value.validate().then(function (res) {
     axios.post(conf.host + '/job', {"name": jobName})
         .then(function (response) {
           getJobList()
@@ -145,9 +144,9 @@ function handleCreatJob() {
         .catch(function (error) {
           utils.raiseError(error)
         })
-  } else {
-    formRef.value.validateFields(['jobName']);
-  }
+  }).catch(function (res) {
+    console.log(res)
+  })
 }
 
 // 删除
