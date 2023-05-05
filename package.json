@@ -8,6 +8,7 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@antv/layout": "^0.3.20",
     "@antv/x6": "^2.9.4",
     "@antv/x6-plugin-clipboard": "^2.1.5",
     "@antv/x6-plugin-history": "^2.2.0",

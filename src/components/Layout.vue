@@ -1,18 +1,5 @@
 <template>
   <a-layout>
-    <a-layout-header class="header">
-      <div class="logo"/>
-      <a-menu
-          v-model:selectedKeys="selectedKeys1"
-          theme="dark"
-          mode="horizontal"
-          :style="{ lineHeight: '64px' }"
-      >
-        <a-menu-item key="1">nav 1</a-menu-item>
-        <a-menu-item key="2">nav 2</a-menu-item>
-        <a-menu-item key="3">nav 3</a-menu-item>
-      </a-menu>
-    </a-layout-header>
     <a-layout>
       <a-layout-sider width="200" style="background: #fff">
         <a-menu
@@ -38,7 +25,7 @@
             <a-breadcrumb-item>{{ currentJobName }}</a-breadcrumb-item>
           </a-breadcrumb>
           <a-button @click="creatJob" type="primary" style="width: 100px">新建</a-button>
-          <a-modal v-model:visible="modelVisible" title="新建作业" @ok="handleCreatJob">
+          <a-modal v-model:visible="modelVisible" title="新建作业" @ok="handleCreateJob">
             <a-form
                 ref="formRef"
                 :model="formState"
@@ -133,9 +120,9 @@ const formState = ref({
   jobName: '',
 });
 
-function handleCreatJob() {
+function handleCreateJob() {
   formRef.value.validate().then(function (res) {
-    axios.post(conf.host + '/job', {"name": jobName})
+    axios.post(conf.host + '/job', {"name": res.jobName})
         .then(function (response) {
           getJobList()
           displayJob(response.data.data)

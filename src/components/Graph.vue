@@ -1,11 +1,16 @@
 <template>
   <a-button @click="updateJob" style="width: 100px">保存</a-button>
+  <a-button @click="runJob" style="width: 100px;background-color: #66FF33">运行</a-button>
+  <a-button @click="stopJob" danger style="width: 100px">停止</a-button>
+  <a-button @click="reLayout" style="width: 100px">对齐</a-button>
+  <a-button @click="addNode" style="width: 100px">添加节点</a-button>
   <div id="container"></div>
   <NodeDrawer :visible="visible" :nodeComponent="Operation" :nodeData="currentNodeData"></NodeDrawer>
 </template>
 
 <script setup lang="ts">
 import axios from "axios";
+import {DagreLayout} from '@antv/layout'
 import {Graph, Shape} from '@antv/x6'
 import {Stencil} from '@antv/x6-plugin-stencil'
 import {Transform} from '@antv/x6-plugin-transform'
@@ -29,7 +34,7 @@ const props = defineProps(['job'])
 watch(
     () => props.job,
     (job) => {
-      graph.fromJSON(job.config.cells ? job.config.cells : [])
+      graph.fromJSON(job?.config?.cells ? job.config.cells : [])
     }
 )
 const emit = defineEmits(['displayJob'])
@@ -65,6 +70,90 @@ function updateJob() {
   })
       .then(function (response) {
         displayJob(response.data.data)
+      })
+      .catch(function (error) {
+        utils.raiseError(error)
+      })
+}
+
+function runJob() {
+  axios.post(conf.host + '/job/run/' + props.job.id,)
+      .then(function (response) {
+        console.log(response)
+      })
+      .catch(function (error) {
+        utils.raiseError(error)
+      })
+}
+
+function stopJob() {
+  axios.post(conf.host + '/job/stop/' + props.job.id,)
+      .then(function (response) {
+        console.log(response)
+      })
+      .catch(function (error) {
+        utils.raiseError(error)
+      })
+}
+
+function reLayout() {
+  const graphJson = graph.toJSON()
+  const model = {
+    nodes: graphJson.cells.filter((view) => {
+      return view.shape != 'edge'
+    }),
+    edges: graphJson.cells.filter((view) => {
+      return view.shape == 'edge'
+    })
+  }
+  const dagreLayout = new DagreLayout({
+    type: "dagre",
+    rankdir: "LR",
+    align: "UL",
+    ranksep: 30,
+    nodesep: 15,
+    controlPoints: true,
+  });
+  const newModel = dagreLayout.layout(model);
+  graph.fromJSON(newModel);
+}
+
+function addNode() {
+  const model = {nodes: [], edges: []}
+  axios.get(conf.host + '/data',)
+      .then(function (response) {
+        for (const k in response.data.nodes) {
+          model.nodes.push(graph.addNode({
+            shape: 'custom-rect',
+            id: response.data.nodes[k].id,
+            label: response.data.nodes[k].name,
+            data: response.data.nodes[k],
+          }))
+        }
+        for (const k in response.data.edges) {
+          model.edges.push(graph.addEdge({
+            shape: "edge",
+            source: {
+              cell: response.data.edges[k].source,
+              anchor: 'midSide'
+            },
+            target: {
+              cell: response.data.edges[k].target,
+              anchor: 'midSide'
+            },
+            attrs: {
+              line: {
+                stroke: '#A2B1C3',
+                strokeWidth: 2,
+                targetMarker: {
+                  name: 'block',
+                  width: 12,
+                  height: 8,
+                },
+              },
+            },
+          }))
+        }
       })
       .catch(function (error) {
         utils.raiseError(error)
@@ -147,6 +236,13 @@ onMounted(() => {
     visible.value = true
     currentNodeData.value = node
   });
+  graph.on("edge:mouseenter", ({e, edge, view}) => {
+    edge.setAttrByPath('line/stroke', '#ffff00')
+    edge.toFront()
+  });
+  graph.on("edge:mouseleave", ({e, edge, view}) => {
+    edge.setAttrByPath('line/stroke', '#A2B1C3')
+  });
 // #region 使用插件
   graph
       .use(
@@ -160,6 +256,7 @@ onMounted(() => {
             enabled: true,
             rubberband: true,
             showNodeSelectionBox: true,
+            modifiers: "ctrl"
           }),
       )
       .use(
@@ -185,6 +282,7 @@ onMounted(() => {
       .use(
           new Scroller({
             enabled: true,
+            pannable: true,
           })
       )
 // #endregion

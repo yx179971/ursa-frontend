@@ -31,7 +31,7 @@ export interface Props {
 const props = withDefaults(defineProps<Props>(), {
   visible: false,
   closable: true,
-  destroyOnClose: false,
+  destroyOnClose: true,
   maskClosable: true,
   title: '配置',
   placement: 'right',
@@ -53,5 +53,7 @@ function onClose() {
       })
 }
 
-
+defineExpose({
+  onClose
+})
 </script>
