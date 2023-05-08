@@ -3,7 +3,8 @@
   <a-button @click="runJob" style="width: 100px;background-color: #66FF33">运行</a-button>
   <a-button @click="stopJob" danger style="width: 100px">停止</a-button>
   <a-button @click="reLayout" style="width: 100px">对齐</a-button>
-  <a-button @click="addNode" style="width: 100px">添加节点</a-button>
+  <a-button @click="recordStart" style="width: 100px">开始录制</a-button>
+  <a-button @click="recordStop" style="width: 100px">停止录制</a-button>
   <div id="container"></div>
   <NodeDrawer :visible="visible" :nodeComponent="Operation" :nodeData="currentNodeData"></NodeDrawer>
 </template>
@@ -118,10 +119,20 @@ function reLayout() {
   graph.fromJSON(newModel);
 }
 
-function addNode() {
-  const model = {nodes: [], edges: []}
-  axios.get(conf.host + '/data',)
+function recordStart() {
+  axios.post(conf.host + '/record/start/' + props.job.id,)
       .then(function (response) {
+        console.log(response)
+      })
+      .catch(function (error) {
+        utils.raiseError(error)
+      })
+}
+
+function recordStop() {
+  axios.post(conf.host + '/record/stop/' + props.job.id,)
+      .then(function (response) {
+        const model = {nodes: [], edges: []}
         for (const k in response.data.nodes) {
           model.nodes.push(graph.addNode({
             shape: 'custom-rect',
