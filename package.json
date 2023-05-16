@@ -1,8 +1,10 @@
 {
   "name": "ursa-frontend",
-  "version": "0.0.0",
+  "version": "1.0.0",
+  "description": "",
+  "main": "main.js",
+  "author": "yx179971",
   "private": true,
-  "main": "dist/main.js",
   "scripts": {
     "dev": "vite",
     "build": "vite build",
