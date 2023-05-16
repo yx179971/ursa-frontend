@@ -18,6 +18,9 @@ jobs:
         with:
           node-version: 14
 
+      - name: install wine64
+        run: sudo apt install wine64
+
       - name: Install dependencies
         run: npm install
 
