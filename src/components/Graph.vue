@@ -1,12 +1,25 @@
 <template>
-  <a-button @click="updateJob" style="width: 100px">保存</a-button>
-  <a-button @click="runJob" style="width: 100px;background-color: #66FF33">运行</a-button>
-  <a-button @click="stopJob" danger style="width: 100px">停止</a-button>
-  <a-button @click="reLayout" style="width: 100px">对齐</a-button>
-  <a-button @click="recordStart" style="width: 100px">开始录制</a-button>
-  <a-button @click="recordStop" style="width: 100px">停止录制</a-button>
-  <div id="container"></div>
-  <NodeDrawer :visible="visible" :nodeComponent="Operation" :nodeData="currentNodeData"></NodeDrawer>
+  <div style="display: flex; align-items: center">
+    <a-button @click="updateJob" style="width: 100px">保存</a-button>
+    <a-button @click="runJob" style="width: 100px;background-color: #66FF33">运行</a-button>
+    <a-button @click="stopJob" danger style="width: 100px">停止</a-button>
+    <a-button @click="reLayout" style="width: 100px">对齐</a-button>
+    <a-button @click="backCenter" style="min-width: 100px">回到画布中央</a-button>
+    <a-button @click="recordStart" style="width: 100px">开始录制</a-button>
+    <a-button @click="recordStop" style="width: 100px">停止录制</a-button>
+    <a-typography-text type="success" v-if="execMessage">正在执行：{{ execMessage }}</a-typography-text>
+    <a-input-search style="margin-left: auto; width: 220px"
+                    v-model:value="searchNodeName"
+                    placeholder="搜索节点名称"
+                    enter-button
+                    @search="searchNode"
+    />
+  </div>
+  <div id="container">
+    <div id="stencil"></div>
+    <div id="graph-container"></div>
+  </div>
+  <NodeDrawer v-model:visible="nodeDrawerVisible" :nodeComponent="nodeComponent"></NodeDrawer>
 </template>
 
 <script setup lang="ts">
@@ -20,83 +33,145 @@ import {Snapline} from '@antv/x6-plugin-snapline'
 import {Keyboard} from '@antv/x6-plugin-keyboard'
 import {Clipboard} from '@antv/x6-plugin-clipboard'
 import {History} from '@antv/x6-plugin-history'
-import insertCss from 'insert-css'
-import {onMounted, ref, provide, watch} from 'vue'
+import {onMounted, ref, provide, watch, createVNode, onBeforeUnmount} from 'vue'
+import {ExclamationCircleOutlined} from '@ant-design/icons-vue';
 
 import NodeDrawer from './NodeDrawer.vue'
-import Operation from './nodes/Operation.vue'
 import conf from "../conf.js"
 import utils from "../utils.js"
-import {message} from "ant-design-vue";
 import {Scroller} from "@antv/x6-plugin-scroller";
+import {message, Modal} from "ant-design-vue";
+
+const props = defineProps(['job'])
+const emit = defineEmits(['displayJob'])
+
+const currentNodeData = ref(null)
+provide('currentNodeData', currentNodeData)
 
 let graph = null
-const props = defineProps(['job'])
 watch(
     () => props.job,
     (job) => {
-      graph.fromJSON(job?.config?.cells ? job.config.cells : [])
+      graph.fromJSON(job.config.cells ? job.config.cells : [])
     }
 )
-const emit = defineEmits(['displayJob'])
 
-function displayJob(job) {
-  emit('displayJob', job)
-}
+const nodeDrawerVisible = ref(false)
+let nodeComponent = null
 
-const visible = ref(false)
-const nodeId = ref('')
-
-function setVisibleFalse() {
-  visible.value = false
-}
-
+// 更新节点
 function updateNodeData(nodeId, attrs, data) {
+  const node = graph.findViewByCell(nodeId).cell
   for (const k in attrs) {
-    graph.findViewByCell(nodeId).cell.setAttrByPath(k, attrs[k])
+    node.setAttrByPath(k, attrs[k])
+    switch (k) {
+      case 'rank/text':
+        if (attrs[k]) {
+          node.setAttrs({
+            circle: {
+              cy: 5,
+              r: 10,
+              fill: "green",
+              strokeWidth: 0,
+              stroke: '',
+            }
+          })
+        } else {
+          node.removeAttrByPath('circle')
+        }
+        break
+      case 'execCount/text':
+        if (attrs[k] && attrs) {
+          node.setAttrs({
+            circleExecCount: {
+              cy: 25,
+              r: 10,
+              fill: "bluetooth",
+              strokeWidth: 0,
+              stroke: '',
+            }
+          })
+        } else {
+          node.removeAttrByPath('circleExecCount')
+        }
+        break
+    }
+
   }
   for (const k in data) {
-    graph.findViewByCell(nodeId).cell.setData({[k]: data[k]})
+    node.setData({[k]: data[k]}, {deep: false})
   }
   updateJob()
 }
 
-const currentNodeData = ref(null)
+provide('updateNodeData', updateNodeData)
 
+// 保存
 function updateJob() {
-  axios.put(conf.host + '/job/' + props.job.id, {
-    "id": props.job.id,
-    "name": props.job.name,
-    "config": graph.toJSON()
+  return new Promise((resolve, reject) => {
+    axios.put(conf.host + '/job/' + props.job.id, {
+      "id": props.job.id,
+      "name": props.job.name,
+      "config": graph.toJSON()
+    })
+        .then(function (response) {
+          emit('displayJob', response.data.data)
+          resolve()
+        })
+        .catch(function (error) {
+          utils.raiseError(error)
+          reject()
+        })
   })
+}
+
+defineExpose({
+  updateJob
+})
+
+// 运行作业
+function runJob(e, force) {
+  updateJob()
+  const query = force ? `?force=${force}` : ''
+  axios.post(conf.host + '/job/run/' + props.job.id + query, {force: force})
       .then(function (response) {
-        displayJob(response.data.data)
+        message.success('请求成功')
+        timer = setInterval(getMqStatus, 3000)
       })
       .catch(function (error) {
-        utils.raiseError(error)
+        if (error.response?.status && error.response.data.code == 50002) {
+          Modal.confirm({
+            title: '强制运行当前作业?',
+            icon: createVNode(ExclamationCircleOutlined),
+            content: '',
+            okText: 'Yes',
+            okType: 'danger',
+            cancelText: 'No',
+            onOk() {
+              runJob(null, true)
+            },
+            onCancel() {
+              console.log('Cancel');
+            },
+          })
+        } else {
+          utils.raiseError(error)
+        }
       })
 }
 
-function runJob() {
-  axios.post(conf.host + '/job/run/' + props.job.id,)
-      .then(function (response) {
-        console.log(response)
-      })
-      .catch(function (error) {
-        utils.raiseError(error)
-      })
-}
-
+// 停止作业
 function stopJob() {
   axios.post(conf.host + '/job/stop/' + props.job.id,)
       .then(function (response) {
-        console.log(response)
+        message.success('请求成功')
       })
       .catch(function (error) {
         utils.raiseError(error)
       })
 }
 
+// 对齐
 function reLayout() {
   const graphJson = graph.toJSON()
   const model = {
@@ -119,16 +194,23 @@ function reLayout() {
   graph.fromJSON(newModel);
 }
 
+// 回到画布中央
+function backCenter() {
+  graph.center()
+}
+
+// 开始录制
 function recordStart() {
   axios.post(conf.host + '/record/start/' + props.job.id,)
       .then(function (response) {
-        console.log(response)
+        message.success('请求成功')
       })
       .catch(function (error) {
         utils.raiseError(error)
       })
 }
 
+// 停止录制
 function recordStop() {
   axios.post(conf.host + '/record/stop/' + props.job.id,)
       .then(function (response) {
@@ -171,14 +253,49 @@ function recordStop() {
       })
 }
 
-provide('nodeId', nodeId)
-provide('setVisibleFalse', setVisibleFalse)
-provide('updateNodeData', updateNodeData)
+const searchNodeName = ref('')
+
+function searchNode() {
+  for (let node of graph.getNodes()) {
+    if (node.attrs.text.text.includes(searchNodeName.value)) {
+      graph.select(node)
+      const {x, y} = node.position()
+      graph.centerPoint(x, y)
+      break
+    }
+  }
+}
+
+const execMessage = ref('')
+let timer = null
+
+function getMqStatus() {
+  axios.get(conf.host + '/mq/status')
+      .then((response) => {
+        switch (response.data.data.status) {
+          case 'running':
+            execMessage.value = response.data.data.node_track
+            break
+          case 'stopped':
+          case 'failure':
+          case 'finish':
+            execMessage.value = ''
+            clearInterval(timer)
+            break
+          default:
+            execMessage.value = ''
+        }
+      })
+      .catch(function (error) {
+        utils.raiseError(error)
+      })
+}
+
+onBeforeUnmount(() => {
+  clearInterval(timer)
+})
+
 onMounted(() => {
-
-// 为了协助代码演示
-  preWork()
-
 // #region 初始化画布
   graph = new Graph({
     container: document.getElementById('graph-container')!,
@@ -186,8 +303,8 @@ onMounted(() => {
     background: {
       color: '#F2F7FA',
     },
-    height: 700,
-    // autoResize: true,
+    height: 600,
+    autoResize: true,
     // mousewheel: {
     //   enabled: true,
     //   zoomAtMousePosition: true,
@@ -242,10 +359,44 @@ onMounted(() => {
     },
   })
 // #endregion
+
+// 控制连接桩显示/隐藏
+  const showPorts = (ports: NodeListOf<SVGElement>, show: boolean) => {
+    for (let i = 0, len = ports.length; i < len; i += 1) {
+      ports[i].style.visibility = show ? 'visible' : 'hidden'
+    }
+  }
+  graph.on('node:mouseenter', ({e, node, view}) => {
+    const container = document.getElementById('graph-container')!
+    const ports = container.querySelectorAll(
+        '.x6-port-body',
+    ) as NodeListOf<SVGElement>
+    showPorts(ports, true)
+    node.toFront()
+  })
+  graph.on('node:mouseleave', () => {
+    const container = document.getElementById('graph-container')!
+    const ports = container.querySelectorAll(
+        '.x6-port-body',
+    ) as NodeListOf<SVGElement>
+    showPorts(ports, false)
+  })
   graph.on("node:click", ({e, x, y, node, view}) => {
-    nodeId.value = node.id
-    visible.value = true
     currentNodeData.value = node
+    switch (node.store.data.data.type) {
+      case 'start':
+        nodeComponent = 'Start'
+        break
+      case 'job':
+        nodeComponent = 'Job'
+        break
+      case 'virtual':
+        nodeComponent = 'Virtual'
+        break
+      default:
+        nodeComponent = 'Operation'
+    }
+    nodeDrawerVisible.value = true
   });
   graph.on("edge:mouseenter", ({e, edge, view}) => {
     edge.setAttrByPath('line/stroke', '#ffff00')
@@ -254,6 +405,8 @@ onMounted(() => {
   graph.on("edge:mouseleave", ({e, edge, view}) => {
     edge.setAttrByPath('line/stroke', '#A2B1C3')
   });
+// #endregion
+
 // #region 使用插件
   graph
       .use(
@@ -300,13 +453,13 @@ onMounted(() => {
 
 // #region 初始化 stencil
   const stencil = new Stencil({
-    title: '流程图',
+    title: '节点',
     target: graph,
     stencilGraphWidth: 200,
     stencilGraphHeight: 0,
     collapsable: false,
     layoutOptions: {
-      columns: 2,
+      columns: 1,
       columnWidth: 80,
       rowHeight: 70,
     },
@@ -381,28 +534,6 @@ onMounted(() => {
       graph.zoom(-0.1)
     }
   })
-
-// 控制连接桩显示/隐藏
-  const showPorts = (ports: NodeListOf<SVGElement>, show: boolean) => {
-    for (let i = 0, len = ports.length; i < len; i += 1) {
-      ports[i].style.visibility = show ? 'visible' : 'hidden'
-    }
-  }
-  graph.on('node:mouseenter', () => {
-    const container = document.getElementById('graph-container')!
-    const ports = container.querySelectorAll(
-        '.x6-port-body',
-    ) as NodeListOf<SVGElement>
-    showPorts(ports, true)
-  })
-  graph.on('node:mouseleave', () => {
-    const container = document.getElementById('graph-container')!
-    const ports = container.querySelectorAll(
-        '.x6-port-body',
-    ) as NodeListOf<SVGElement>
-    showPorts(ports, false)
-  })
-// #endregion
 
 // #region 初始化图形
   const ports = {
@@ -490,6 +621,32 @@ onMounted(() => {
         inherit: 'rect',
         width: 66,
         height: 36,
+        markup: [
+          {
+            tagName: 'rect',
+            selector: 'body',
+          },
+          {
+            tagName: 'text',
+            selector: 'text',
+          },
+          {
+            tagName: 'circle',
+            selector: 'circle',
+          },
+          {
+            tagName: 'text',
+            selector: 'rank',
+          },
+          {
+            tagName: 'circle',
+            selector: 'circleExecCount',
+          },
+          {
+            tagName: 'text',
+            selector: 'execCount',
+          },
+        ],
         attrs: {
           body: {
             strokeWidth: 1,
@@ -500,6 +657,17 @@ onMounted(() => {
             fontSize: 12,
             fill: '#262626',
           },
+          rank: {
+            fontSize: 12,
+            fill: 'white',
+            'text-anchor': 'middle',
+          },
+          execCount: {
+            fontSize: 12,
+            fill: 'white',
+            'text-anchor': 'middle',
+            y: 30,
+          }
         },
         ports: {...ports},
       },
@@ -544,6 +712,32 @@ onMounted(() => {
         inherit: 'circle',
         width: 45,
         height: 45,
+        markup: [
+          {
+            tagName: 'circle',
+            selector: 'body',
+          },
+          {
+            tagName: 'text',
+            selector: 'text',
+          },
+          {
+            tagName: 'circle',
+            selector: 'circle',
+          },
+          {
+            tagName: 'text',
+            selector: 'rank',
+          },
+          {
+            tagName: 'circle',
+            selector: 'circleExecCount',
+          },
+          {
+            tagName: 'text',
+            selector: 'execCount',
+          },
+        ],
         attrs: {
           body: {
             strokeWidth: 1,
@@ -554,6 +748,17 @@ onMounted(() => {
             fontSize: 12,
             fill: '#262626',
           },
+          rank: {
+            fontSize: 12,
+            fill: 'white',
+            'text-anchor': 'middle',
+          },
+          execCount: {
+            fontSize: 12,
+            fill: 'white',
+            'text-anchor': 'middle',
+            y: 30,
+          }
         },
         ports: {...ports},
       },
@@ -568,31 +773,43 @@ onMounted(() => {
         rx: 20,
         ry: 26,
       },
+      rank: {
+        text: ''
+      }
     },
+    data: {
+      type: 'start',
+      action: 'pass'
+    }
   })
   const r2 = graph.createNode({
     shape: 'custom-rect',
-    label: '过程',
+    label: '操作',
+    data: {
+      type: 'operation'
+    }
   })
-  const r3 = graph.createNode({
-    shape: 'custom-rect',
-    attrs: {
-      body: {
-        rx: 6,
-        ry: 6,
-      },
-    },
-    label: '可选过程',
-  })
-  const r4 = graph.createNode({
-    shape: 'custom-polygon',
-    attrs: {
-      body: {
-        refPoints: '0,10 10,0 20,10 10,20',
-      },
-    },
-    label: '决策',
-  })
+  // const r3 = graph.createNode({
+  //   shape: 'custom-rect',
+  //   attrs: {
+  //     body: {
+  //       rx: 6,
+  //       ry: 6,
+  //     },
+  //   },
+  //   label: '可选过程',
+  //   data: {}
+  // })
+  // const r4 = graph.createNode({
+  //   shape: 'custom-polygon',
+  //   attrs: {
+  //     body: {
+  //       refPoints: '0,10 10,0 20,10 10,20',
+  //     },
+  //   },
+  //   label: '决策',
+  //   data: {}
+  // })
   const r5 = graph.createNode({
     shape: 'custom-polygon',
     attrs: {
@@ -600,81 +817,89 @@ onMounted(() => {
         refPoints: '10,0 40,0 30,20 0,20',
       },
     },
-    label: '数据',
+    label: '作业',
+    data: {
+      type: 'job'
+    }
   })
   const r6 = graph.createNode({
     shape: 'custom-circle',
     label: '连接',
+    attrs: {
+      rank: {
+        text: ''
+      }
+    },
+    data: {
+      type: 'virtual'
+    }
   })
-  stencil.load([r1, r2, r3, r4, r5, r6])
+  stencil.load([r1, r2, r5, r6])
 
 // #endregion
-
-  function preWork() {
-    // 这里协助演示的代码，在实际项目中根据实际情况进行调整
-    const container = document.getElementById('container')!
-    const stencilContainer = document.createElement('div')
-    stencilContainer.id = 'stencil'
-    const graphContainer = document.createElement('div')
-    graphContainer.id = 'graph-container'
-    container.appendChild(stencilContainer)
-    container.appendChild(graphContainer)
-
-    insertCss(`
-    #container {
-      display: flex;
-      border: 1px solid #dfe3e8;
-    }
-    #stencil {
-      width: 180px;
-      height: 100%;
-      position: relative;
-      border-right: 1px solid #dfe3e8;
-    }
-    #graph-container {
-      width: calc(100% - 180px);
-      height: 100%;
-    }
-    .x6-widget-stencil  {
-      background-color: #fff;
-    }
-    .x6-widget-stencil-title {
-      background-color: #fff;
-    }
-    .x6-widget-stencil-group-title {
-      background-color: #fff !important;
-    }
-    .x6-widget-transform {
-      margin: -1px 0 0 -1px;
-      padding: 0px;
-      border: 1px solid #239edd;
-    }
-    .x6-widget-transform > div {
-      border: 1px solid #239edd;
-    }
-    .x6-widget-transform > div:hover {
-      background-color: #3dafe4;
-    }
-    .x6-widget-transform-active-handle {
-      background-color: #3dafe4;
-    }
-    .x6-widget-transform-resize {
-      border-radius: 0;
-    }
-    .x6-widget-selection-inner {
-      border: 1px solid #239edd;
-    }
-    .x6-widget-selection-box {
-      opacity: 0;
-    }
-  `)
-  }
 })
 
 </script>
+
 <style scoped>
 #container {
+  display: flex;
+  border: 1px solid #dfe3e8;
   width: 100%;
+  height: calc(99% - 24px);
+}
+
+#stencil {
+  width: 100px;
   height: 100%;
+  position: relative;
+  border-right: 1px solid #dfe3e8;
+}
+
+#graph-container {
+  width: calc(100% - 180px);
+  height: 100%;
+}
+
+.x6-widget-stencil {
+  background-color: #fff;
+}
+
+.x6-widget-stencil-title {
+  background-color: #fff;
+}
+
+.x6-widget-stencil-group-title {
+  background-color: #fff !important;
+}
+
+.x6-widget-transform {
+  margin: -1px 0 0 -1px;
+  padding: 0px;
+  border: 1px solid #239edd;
+}
+
+.x6-widget-transform > div {
+  border: 1px solid #239edd;
+}
+
+.x6-widget-transform > div:hover {
+  background-color: #3dafe4;
+}
+
+.x6-widget-transform-active-handle {
+  background-color: #3dafe4;
+}
+
+.x6-widget-transform-resize {
+  border-radius: 0;
+}
+
+.x6-widget-selection-inner {
+  border: 1px solid #239edd;
+}
+
+.x6-widget-selection-box {
+  opacity: 0;
 }
 </style>

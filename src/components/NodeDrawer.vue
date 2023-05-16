@@ -9,16 +9,20 @@
       :placement="placement"
       @close="onClose"
   >
-    <component ref="nodeConfig" :is="nodeComponent" :nodeData="nodeData"/>
+    <component ref="nodeConfig" :is="cs[nodeComponent]" @close="onClose"/>
   </a-drawer>
 </template>
 
 <script setup lang="ts">
-import {VueConstructor, inject, getCurrentInstance, onMounted} from 'vue';
+import {getCurrentInstance} from 'vue';
+import {message} from "ant-design-vue";
+import Start from './nodes/Start.vue'
+import Virtual from './nodes/Virtual.vue'
+import Operation from './nodes/Operation.vue'
+import Job from './nodes/Job.vue'
 
 export interface Props {
-  nodeComponent?: VueConstructor
-  nodeData?: any
+  nodeComponent?: string
   visible?: boolean
   closable?: boolean
   destroyOnClose?: boolean
@@ -28,32 +32,36 @@ export interface Props {
   width?: number
 }
 
-const props = withDefaults(defineProps<Props>(), {
+withDefaults(defineProps<Props>(), {
   visible: false,
   closable: true,
   destroyOnClose: true,
   maskClosable: true,
   title: '配置',
   placement: 'right',
-  width: 256,
+  width: 512,
 })
 
+const cs = {
+  Start,
+  Operation,
+  Job,
+  Virtual,
+}
 
 const proxy = getCurrentInstance()
-const setVisibleFalse = inject('setVisibleFalse')
+const emit = defineEmits(['update:visible'])
 
 function onClose() {
   proxy.refs.nodeConfig.saveConfig()
       .then(function (info) {
-        console.log(info)
-        setVisibleFalse()
+        emit('update:visible', false)
       })
       .catch(function (err) {
         console.log(err)
       })
+  message.warning("配置已保存")
+  // todo: 修改的回退和前进
 }
 
-defineExpose({
-  onClose
-})
 </script>
