@@ -27,7 +27,7 @@ jobs:
       - name: Package Electron app
         run: |
           npm install electron-packager -g
-          electron-packager . Ursa --electron-version=19.0.8 --platform=win32 --arch=x64 --out=dist --overwrite
+          electron-packager . Ursa --electron-version=19.0.8 --platform=win32 --arch=x64 --out=dist --overwrite --html=index.html
 
       - name: Create release
         id: create_release
