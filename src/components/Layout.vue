@@ -1,6 +1,7 @@
 <template>
   <a-layout style="height: 100%">
-    <a-layout-sider width="200" style="background: #fff;overflow: hidden; overflow-y: scroll;">
+    <a-layout-sider v-model:collapsed="collapsed" collapsed-width="0" width="200"
+                    style="background: #fff;overflow: hidden; overflow-y: scroll;">
       <a-menu
           v-model:selectedKeys="selectedKeys"
           v-model:openKeys="openKeys"
@@ -36,7 +37,11 @@
         </a-sub-menu>
       </a-menu>
     </a-layout-sider>
-    <a-layout style="padding: 0 24px 0; height: 100%">
+    <button class="btn" @click="switchCollapsed">
+      <i v-if="!collapsed" class="fa fa-angle-left" aria-hidden="true"/>
+      <i v-if="collapsed" class="fa fa-angle-right" aria-hidden="true"/>
+    </button>
+    <a-layout style="padding: 0 24px 0 12px; height: 100%">
       <p style="flex-direction: row;display: flex;align-items: end">
         <a-breadcrumb style="margin: 16px auto 0 0">
           <a-breadcrumb-item>{{ currentJobName }}</a-breadcrumb-item>
@@ -104,6 +109,11 @@ const graph = ref(null)
 // 左侧菜单列表
 const selectedKeys = ref([])
 const openKeys = ref(['jobList'])
+const collapsed = ref(false)
+
+function switchCollapsed() {
+  collapsed.value = !collapsed.value
+}
 
 // 获取作业列表
 const jobList = ref([])
@@ -225,16 +235,52 @@ function onDragEnd() {
   cursor: move;
   padding: 8px 8px 8px 0;
 }
+
 ::-webkit-scrollbar-thumb {
   background-image: linear-gradient(180deg, #F2BAE8 0%, #0C7BB3 99%);
   box-shadow: inset 2px 2px 5px 0 rgba(#fff, 0.5);
   border-radius: 100px;
 }
+
 ::-webkit-scrollbar-track {
   background-color: #e4e4e4;
   border-radius: 100px;
 }
+
 ::-webkit-scrollbar {
   width: 14px;
 }
+
+.btn {
+  position: relative;
+  top: 50%;
+  width: 12px;
+  height: 50px;
+  border: 0;
+  padding: 0;
+  border-radius: 0 5px 5px 0;
+  background-size: 50px 50px;
+  background-image: linear-gradient(180deg, #F2BAE8 0%, #0C7BB3 99%);
+}
+
+.btn::before {
+  position: absolute;
+  content: '';
+  width: 12px;
+  height: 12px;
+  background-image: radial-gradient(at 12px 0px, transparent 12px, #F2BAE8 12px);
+  top: calc(50% - 37px);
+  left: 0;
+}
+
+.btn::after {
+  position: absolute;
+  content: '';
+  width: 12px;
+  height: 12px;
+  background-image: radial-gradient(at 12px 12px, transparent 12px, #0C7BB3 12px);
+  top: calc(50% + 24.5px);
+  left: 0;
+}
+
 </style>

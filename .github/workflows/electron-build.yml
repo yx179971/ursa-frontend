@@ -7,7 +7,7 @@ on:
 
 jobs:
   build:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
 
     steps:
       - name: Checkout code
@@ -18,8 +18,17 @@ jobs:
         with:
           node-version: 14
 
-      - name: install wine64
-        run: sudo apt install wine64
+      - name: Install wine
+        run: |
+          sudo dpkg --add-architecture i386
+          sudo mkdir -pm755 /etc/apt/keyrings
+          sudo wget -O /etc/apt/keyrings/winehq-archive.key https://dl.winehq.org/wine-builds/winehq.key
+          sudo wget -NP /etc/apt/sources.list.d/ https://dl.winehq.org/wine-builds/ubuntu/dists/jammy/winehq-jammy.sources
+          sudo apt update
+          sudo apt install libgcc-s1:i386 libstdc++6:i386
+          sudo apt install wine-stable-i386
+          sudo apt install wine-stable
+          sudo apt install --install-recommends winehq-stable
 
       - name: Install dependencies
         run: npm install
@@ -30,7 +39,8 @@ jobs:
       - name: Package Electron app
         run: |
           npm install electron-packager -g
-          electron-packager . Ursa --electron-version=19.0.8 --platform=win32 --arch=x64 --out=dist --overwrite --html=index.html
+          cp main.js package.json preload.js renderer.js ./dist
+          electron-packager ./dist Ursa --electron-version=24.3.0 --platform=win32 --arch=x64 --out=dist --overwrite --html=index.html
 
       - name: Create release
         id: create_release
@@ -43,6 +53,9 @@ jobs:
           draft: false
           prerelease: false
 
+      - name: tar
+        run: tar -cvzf Ursa-win32-x64.tar ./dist/Ursa-win32-x64
+
       - name: Upload release assets
         id: upload-release-assets
         uses: actions/upload-release-asset@v1
@@ -50,6 +63,6 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: ./dist/MyApp-linux-x64/
-          asset_name: Ursa.exe
+          asset_path: Ursa-win32-x64.tar
+          asset_name: Ursa.tar
           asset_content_type: application/zip

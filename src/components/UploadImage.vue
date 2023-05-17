@@ -45,7 +45,6 @@ function handleChange(info: UploadChangeParam) {
     message.success(`${info.file.name} file uploaded successfully`);
     console.log(info.file.response)
     emit('update:filePath', info.file.response.data.file_path)
-    // todo 更新现有图片
   } else if (info.file.status === 'error') {
     message.error(`${info.file.name} file upload failed.`);
   }

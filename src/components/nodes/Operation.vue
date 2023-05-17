@@ -125,7 +125,7 @@
 </template>
 
 <script setup lang="ts">
-import {inject, ref} from 'vue';
+import {inject, ref, watch} from 'vue';
 import conf from '../../conf.js'
 import Cut from '../Cut.vue'
 import UploadImage from '../UploadImage.vue'
@@ -200,7 +200,13 @@ const markImageVisible = ref(false)
 const markLocateVisible = ref(false)
 const cutLocateVisible = ref(false)
 const cutTargetVisible = ref(false)
-const imgUrl = ref(conf.host + '/img/' + formState.value.background)
+const imgUrl = ref('')
+watch(
+    () => formState.value.background,
+    (v) => {
+      imgUrl.value = conf.host + '/img/' + formState.value.background
+    }, {immediate: true}
+)
 
 function markLocate() {
   markLocateVisible.value = true
