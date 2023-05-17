@@ -55,7 +55,7 @@ jobs:
           prerelease: false
 
       - name: tar
-        run: tar -cvzf Ursa-win32-x64.tar ./dist/Ursa-win32-x64
+        run: tar -cvzf Ursa-win32-x64.tar ./dist/dist/Ursa-win32-x64
 
       - name: Upload release assets
         id: upload-release-assets
