@@ -136,8 +136,7 @@ defineExpose({
 // 运行作业
 function runJob(e, force, nodeId) {
   updateJob()
-  const query = force ? `?force=${force}` : ''
-  axios.post(conf.host + '/job/run/' + props.job.id + query, {force: force, node_id: nodeId})
+  axios.post(conf.host + '/job/run/' + props.job.id, {force: force, node_id: nodeId})
       .then(function (response) {
         message.success('请求成功')
         timer = setInterval(getMqStatus, 3000)
@@ -302,7 +301,7 @@ onBeforeUnmount(() => {
 const nodeMenuVisible = ref(false)
 
 function runJobNode(e) {
-  runJob(e, false, currentNodeData.id)
+  runJob(e, false, currentNodeData.value.id)
   nodeMenuVisible.value = false
 }
 
