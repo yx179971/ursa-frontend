@@ -151,7 +151,7 @@ function runJob(e, force, nodeId) {
             okType: 'danger',
             cancelText: 'No',
             onOk() {
-              runJob(null, true, null)
+              runJob(null, true, nodeId)
             },
             onCancel() {
               console.log('Cancel');
@@ -413,9 +413,12 @@ onMounted(() => {
     currentNodeData.value = node
     nextTick(() => {
       const c = document.getElementsByClassName('x6-graph-background')
+      const view = document.getElementsByClassName('x6-graph-svg-viewport')
       const menu = document.getElementById('nodeMenu')
       menu.style.top = `${y}px`
       menu.style.left = `${x}px`
+      // 重要，菜单和节点对齐，不知道为什么要平移
+      menu.style.transform = view[1].getAttribute('transform')
       c[1].appendChild(menu)
     })
   });
