@@ -20,6 +20,10 @@
     <div id="graph-container"></div>
   </div>
   <NodeDrawer v-model:visible="nodeDrawerVisible" :nodeComponent="nodeComponent"></NodeDrawer>
+
+  <a-menu v-if="nodeMenuVisible" class="node-menu" id="nodeMenu" @mouseleave="nodeMenuVisible = false">
+    <a-menu-item @click="runJobNode">从该节点开始运行</a-menu-item>
+  </a-menu>
 </template>
 
 <script setup lang="ts">
@@ -33,7 +37,7 @@ import {Snapline} from '@antv/x6-plugin-snapline'
 import {Keyboard} from '@antv/x6-plugin-keyboard'
 import {Clipboard} from '@antv/x6-plugin-clipboard'
 import {History} from '@antv/x6-plugin-history'
-import {onMounted, ref, provide, watch, createVNode, onBeforeUnmount} from 'vue'
+import {onMounted, ref, provide, watch, createVNode, onBeforeUnmount, nextTick} from 'vue'
 import {ExclamationCircleOutlined} from '@ant-design/icons-vue';
 
 import NodeDrawer from './NodeDrawer.vue'
@@ -130,10 +134,10 @@ defineExpose({
 })
 
 // 运行作业
-function runJob(e, force) {
+function runJob(e, force, nodeId) {
   updateJob()
   const query = force ? `?force=${force}` : ''
-  axios.post(conf.host + '/job/run/' + props.job.id + query, {force: force})
+  axios.post(conf.host + '/job/run/' + props.job.id + query, {force: force, node_id: nodeId})
       .then(function (response) {
         message.success('请求成功')
         timer = setInterval(getMqStatus, 3000)
@@ -148,7 +152,7 @@ function runJob(e, force) {
             okType: 'danger',
             cancelText: 'No',
             onOk() {
-              runJob(null, true)
+              runJob(null, true, null)
             },
             onCancel() {
               console.log('Cancel');
@@ -295,6 +299,13 @@ onBeforeUnmount(() => {
   clearInterval(timer)
 })
 
+const nodeMenuVisible = ref(false)
+
+function runJobNode(e) {
+  runJob(e, false, currentNodeData.id)
+  nodeMenuVisible.value = false
+}
+
 onMounted(() => {
 // #region 初始化画布
   graph = new Graph({
@@ -397,6 +408,17 @@ onMounted(() => {
         nodeComponent = 'Operation'
     }
     nodeDrawerVisible.value = true
+  });
+  graph.on("node:contextmenu", ({e, x, y, node, view}) => {
+    nodeMenuVisible.value = true
+    currentNodeData.value = node
+    nextTick(() => {
+      const c = document.getElementsByClassName('x6-graph-background')
+      const menu = document.getElementById('nodeMenu')
+      menu.style.top = `${y}px`
+      menu.style.left = `${x}px`
+      c[1].appendChild(menu)
+    })
   });
   graph.on("edge:mouseenter", ({e, edge, view}) => {
     edge.setAttrByPath('line/stroke', '#ffff00')
@@ -901,5 +923,10 @@ onMounted(() => {
 
 .x6-widget-selection-box {
   opacity: 0;
+}
+
+.node-menu {
+  position: absolute;
+  z-index: 999;
 }
 </style>
