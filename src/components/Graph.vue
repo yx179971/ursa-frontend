@@ -68,9 +68,13 @@ function updateNodeData(nodeId, attrs, data) {
   const node = graph.findViewByCell(nodeId).cell
   for (const k in attrs) {
     node.setAttrByPath(k, attrs[k])
+  }
+  for (const k in data) {
+    node.setData({[k]: data[k]}, {deep: false})
     switch (k) {
-      case 'rank/text':
-        if (attrs[k]) {
+      case 'rank':
+        node.setAttrByPath('rank/text', data[k])
+        if (data[k]) {
           node.setAttrs({
             circle: {
               cy: 5,
@@ -84,8 +88,9 @@ function updateNodeData(nodeId, attrs, data) {
           node.removeAttrByPath('circle')
         }
         break
-      case 'execCount/text':
-        if (attrs[k] && attrs) {
+      case 'exec_count':
+        node.setAttrByPath('execCount/text', data[k])
+        if (data[k]) {
           node.setAttrs({
             circleExecCount: {
               cy: 25,
@@ -99,11 +104,14 @@ function updateNodeData(nodeId, attrs, data) {
           node.removeAttrByPath('circleExecCount')
         }
         break
+      case 'enable':
+        let text = ''
+        if (!data[k]) {
+          text = ''
+        }
+        node.setAttrByPath('status/text', text)
+        break
     }
-
-  }
-  for (const k in data) {
-    node.setData({[k]: data[k]}, {deep: false})
   }
   updateJob()
 }
@@ -670,6 +678,10 @@ onMounted(() => {
             tagName: 'text',
             selector: 'execCount',
           },
+          {
+            tagName: 'text',
+            selector: 'status',
+          },
         ],
         attrs: {
           body: {
@@ -691,6 +703,13 @@ onMounted(() => {
             fill: 'white',
             'text-anchor': 'middle',
             y: 30,
+          },
+          status: {
+            fontSize: 14,
+            fontFamily: 'FontAwesome',
+            text: '',
+            fill: 'red',
+            x: 60
           }
         },
         ports: {...ports},
@@ -761,6 +780,10 @@ onMounted(() => {
             tagName: 'text',
             selector: 'execCount',
           },
+          {
+            tagName: 'text',
+            selector: 'status',
+          },
         ],
         attrs: {
           body: {
@@ -782,6 +805,13 @@ onMounted(() => {
             fill: 'white',
             'text-anchor': 'middle',
             y: 30,
+          },
+          status: {
+            fontSize: 14,
+            fontFamily: 'FontAwesome',
+            text: '',
+            fill: 'red',
+            x: 40
           }
         },
         ports: {...ports},

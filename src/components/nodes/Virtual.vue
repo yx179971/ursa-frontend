@@ -33,6 +33,10 @@
       <a-input v-model:value="formState.execCount"/>
     </a-form-item>
 
+    <a-form-item>
+      <div>启用</div>
+      <a-switch v-model:checked="formState.enable"></a-switch>
+    </a-form-item>
   </a-form>
 </template>
 
@@ -49,6 +53,7 @@ const formState = ref({
   nodeName: nodeData.attrs.text.text,
   rank: nodeData.data?.rank ? nodeData.data.rank : '',
   execCount: nodeData.data?.exec_count ? nodeData.data.exec_count : '',
+  enable: nodeData.data?.enable === undefined ? true : nodeData.data.enable,
 })
 
 function saveConfig() {
@@ -57,12 +62,11 @@ function saveConfig() {
         .then(function (info) {
           updateNodeData(nodeData.id, {
             "text/text": formState.value.nodeName,
-            'rank/text': formState.value.rank,
-            'execCount/text': formState.value.execCount,
           }, {
             'action': 'pass',
             'rank': formState.value.rank,
             'exec_count': formState.value.execCount,
+            'enable': formState.value.enable,
           })
           resolve(info)
         })

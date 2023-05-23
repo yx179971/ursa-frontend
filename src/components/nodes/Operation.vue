@@ -6,11 +6,10 @@
       autocomplete="off"
   >
     <!--      注意name和formState中用到的字段必须一致-->
-    <div style="display: flex; flex-direction: row">
+    <div style="display: flex; flex-direction: row; justify-content: space-between">
       <a-form-item
           name="nodeName"
           :rules="[{ required: true, message: '请输入节点名称!' }]"
-          style="margin-right: 20%"
       >
         <div>名称</div>
         <a-input v-model:value="formState.nodeName" v-on:keyup.enter="$emit('close')"/>
@@ -29,7 +28,10 @@
             placeholder=""
         />
       </a-form-item>
-
+      <a-form-item>
+        <div>启用</div>
+        <a-switch v-model:checked="formState.enable"></a-switch>
+      </a-form-item>
     </div>
     <div class="ant-form-item">
       <div>示例图</div>
@@ -156,6 +158,7 @@ const formState = ref({
   execCount: nodeData.data?.exec_count ? nodeData.data.exec_count : '',
   source_code: nodeData.data?.source_code ? nodeData.data.source_code : '',
   rank: nodeData.data?.rank ? nodeData.data.rank : '',
+  enable: nodeData.data?.enable === undefined ? true : nodeData.data.enable,
 })
 
 function saveConfig() {
@@ -165,8 +168,6 @@ function saveConfig() {
           updateNodeData(nodeData.id,
               {
                 "text/text": formState.value.nodeName,
-                'rank/text': formState.value.rank,
-                'execCount/text': formState.value.execCount,
               },
               {
                 'action': formState.value.action,
@@ -182,7 +183,8 @@ function saveConfig() {
                 'type': formState.value.type,
                 'exec_count': formState.value.execCount,
                 'source_code': formState.value.source_code,
-                'rank': formState.value.rank
+                'rank': formState.value.rank,
+                'enable': formState.value.enable,
               })
           resolve(info)
         })
