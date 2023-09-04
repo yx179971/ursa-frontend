@@ -2,6 +2,8 @@
   <div style="display: flex; align-items: center">
     <a-button @click="updateJob" style="width: 100px">保存</a-button>
     <a-button @click="runJob" style="width: 100px;background-color: #66FF33">运行</a-button>
+    <a-button @click="continueJob" v-show="mqStatus==='pause'" style="width: 100px;background-color: #66FF33">继续</a-button>
+    <a-button @click="pauseJob" v-show="mqStatus==='running'" style="width: 100px;background-color: yellow">暂停</a-button>
     <a-button @click="stopJob" danger style="width: 100px">停止</a-button>
     <a-button @click="reLayout" style="width: 100px">对齐</a-button>
     <a-button @click="backCenter" style="min-width: 100px">回到画布中央</a-button>
@@ -171,6 +173,30 @@ function runJob(e, force, nodeId) {
       })
 }
 
+// 继续作业
+function continueJob() {
+  axios.post(conf.host + '/job/continue/' + props.job.id,)
+      .then(function (response) {
+        message.success('请求成功')
+      })
+      .catch(function (error) {
+        utils.raiseError(error)
+      })
+}
+
+const mqStatus = ref('')
+
+// 暂停作业
+function pauseJob() {
+  axios.post(conf.host + '/job/pause/' + props.job.id,)
+      .then(function (response) {
+        message.success('请求成功')
+      })
+      .catch(function (error) {
+        utils.raiseError(error)
+      })
+}
+
 // 停止作业
 function stopJob() {
   axios.post(conf.host + '/job/stop/' + props.job.id,)
@@ -283,8 +309,10 @@ let timer = null
 function getMqStatus() {
   axios.get(conf.host + '/mq/status')
       .then((response) => {
-        switch (response.data.data.status) {
+        mqStatus.value = response.data.data.status
+        switch (mqStatus.value) {
           case 'running':
+          case 'pause':
             execMessage.value = response.data.data.node_track
             break
           case 'stopped':
