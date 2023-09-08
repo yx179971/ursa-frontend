@@ -1,7 +1,6 @@
 // Modules to control application life and create native browser window
 const { app, BrowserWindow } = require('electron')
 const path = require('path')
-const { spawn} = require('child_process')
 
 function createWindow () {
     // Create the browser window.
@@ -24,19 +23,6 @@ function createWindow () {
 // initialization and is ready to create browser windows.
 // Some APIs can only be used after this event occurs.
 app.whenReady().then(() => {
-    const exeProcess = spawn('./resources/ursa.exe', []);
-
-    exeProcess.stdout.on('data', (data) => {
-        console.log(`Program Output: ${data}`);
-    });
-
-    exeProcess.stderr.on('data', (data) => {
-        console.error(`Program Error: ${data}`);
-    });
-
-    exeProcess.on('close', (code) => {
-        console.log(`Program process exited with code ${code}`);
-    });
     createWindow()
 
     app.on('activate', function () {
