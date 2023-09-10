@@ -63,6 +63,9 @@
 
     <a-form-item>
       <div>操作</div>
+      <div v-if="formState.action !== 'pass'">
+        <a-checkbox v-model:checked="formState.click_right">右键</a-checkbox>
+      </div>
       <a-radio-group v-model:value="formState.action">
         <a-radio value="pass">仅检测</a-radio>
         <a-radio value="click_locate">点击检测目标</a-radio>
@@ -145,6 +148,7 @@ const formRef = ref(null)
 const formState = ref({
   nodeName: nodeData.attrs.text.text,
   action: nodeData.data?.action ? nodeData.data.action : 'pass',
+  click_right: nodeData.data?.click_right ? nodeData.data.click_right : false,
   background: nodeData.data?.background ? nodeData.data.background : '',
   locate: nodeData.data?.locate ? nodeData.data.locate : '',
   locateRect: nodeData.data?.locate_rect ? nodeData.data.locate_rect : {},
@@ -171,6 +175,7 @@ function saveConfig() {
               },
               {
                 'action': formState.value.action,
+                'click_right': formState.value.click_right,
                 'background': formState.value.background,
                 'locate': formState.value.locate,
                 'locate_rect': formState.value.locateRect,

@@ -1,5 +1,6 @@
 <template>
   <div style="display: flex; align-items: center">
+    <i class="fa fa-cog fa-2x" @click="jobConfVisible = true"></i>
     <a-button @click="updateJob" style="width: 100px">保存</a-button>
     <a-button @click="runJob" style="width: 100px;background-color: #66FF33">运行</a-button>
     <a-button @click="continueJob" v-show="mqStatus==='pause'" style="width: 100px;background-color: #66FF33">继续</a-button>
@@ -26,6 +27,49 @@
   <a-menu v-if="nodeMenuVisible" class="node-menu" id="nodeMenu" @mouseleave="nodeMenuVisible = false">
     <a-menu-item @click="runJobNode">从该节点开始运行</a-menu-item>
   </a-menu>
+
+  <a-modal v-model:visible="jobConfVisible" title="运行配置" @ok="updateJob">
+    <a-form
+        ref="formRef"
+        :model="formState"
+        autocomplete="off"
+        name="updateJobConf"
+    >
+      <a-form-item
+          label="窗口名称"
+          name="windowName"
+      >
+        <a-dropdown @click="getWindows" :trigger="['click']">
+          <template #overlay>
+            <a-menu @click="handleMenuClick">
+              <!--              <a-menu-item key="">整个屏幕</a-menu-item>-->
+              <a-menu-item v-for="window in windows" :key="window">
+                <i class="fa fa-window-maximize"></i>
+                {{ window }}
+              </a-menu-item>
+            </a-menu>
+          </template>
+          <a-button>
+            {{ formState.windowName }}
+            <DownOutlined/>
+          </a-button>
+        </a-dropdown>
+      </a-form-item>
+      <a-form-item
+          label="窗口初始位置"
+          name="windowStart"
+      >
+        <a-input v-model:value="formState.windowStart"/>
+      </a-form-item>
+      <a-form-item
+          label="窗口宽高"
+          name="windowWidthHeight"
+      >
+        <a-input v-model:value="formState.windowWidthHeight"/>
+      </a-form-item>
+    </a-form>
+  </a-modal>
+
 </template>
 
 <script setup lang="ts">
@@ -40,7 +84,7 @@ import {Keyboard} from '@antv/x6-plugin-keyboard'
 import {Clipboard} from '@antv/x6-plugin-clipboard'
 import {History} from '@antv/x6-plugin-history'
 import {onMounted, ref, provide, watch, createVNode, onBeforeUnmount, nextTick} from 'vue'
-import {ExclamationCircleOutlined} from '@ant-design/icons-vue';
+import {ExclamationCircleOutlined, DownOutlined} from '@ant-design/icons-vue';
 
 import NodeDrawer from './NodeDrawer.vue'
 import conf from "../conf.js"
@@ -58,12 +102,44 @@ let graph = null
 watch(
     () => props.job,
     (job) => {
+      formState.value.windowName = job.config.window ? job.config.window : ''
+      formState.value.windowStart = job.config.window_start ? job.config.window_start : ''
+      formState.value.windowWidthHeight = job.config.window_width_height ? job.config.window_width_height : ''
       graph.fromJSON(job.config.cells ? job.config.cells : [])
     }
 )
 
 const nodeDrawerVisible = ref(false)
 let nodeComponent = null
+
+const jobConfVisible = ref(false)
+
+const formRef = ref(null)
+const formState = ref({
+  windowName: '',
+  windowStart: '',
+  windowWidthHeight: '',
+});
+const handleMenuClick = (e) => {
+  formState.value.windowName = e.key
+};
+
+let windows = [];
+
+function getWindows() {
+  axios.get(conf.host + '/windows',)
+      .then(function (response) {
+        const data = response.data.data.windows
+        const tmp = []
+        for (const k in data) {
+          tmp.push(data[k])
+        }
+        windows = tmp
+      })
+      .catch(function (error) {
+        utils.raiseError(error)
+      })
+}
 
 // 更新节点
 function updateNodeData(nodeId, attrs, data) {
@@ -123,12 +199,17 @@ provide('updateNodeData', updateNodeData)
 // 保存
 function updateJob() {
   return new Promise((resolve, reject) => {
+    const config = graph.toJSON()
+    config.window = formState.value.windowName
+    config.window_start = formState.value.windowStart
+    config.window_width_height = formState.value.windowWidthHeight
     axios.put(conf.host + '/job/' + props.job.id, {
       "id": props.job.id,
       "name": props.job.name,
-      "config": graph.toJSON()
+      "config": config,
     })
         .then(function (response) {
+          jobConfVisible.value = false
           emit('displayJob', response.data.data)
           resolve()
         })

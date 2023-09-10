@@ -27,7 +27,10 @@ jobs:
       - uses: actions/upload-artifact@v2
         with:
           name: my-artifact
-          path: ./dist/Ursa.exe
+          path: |
+            ./dist/Ursa.exe
+            img
+            sql_app.db
 
   build_frontend:
     needs: build_backend
@@ -74,8 +77,8 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          tag_name: v1.1.6
-          release_name: Release v1.1.6
+          tag_name: v1.1.7
+          release_name: Release v1.1.7
           draft: false
           prerelease: false
 
