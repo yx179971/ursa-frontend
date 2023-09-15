@@ -157,6 +157,7 @@ function handleCutImage() {
 
   .ant-modal-body {
     flex: 1;
+    overflow-y: scroll;
   }
 }
 </style>

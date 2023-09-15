@@ -49,10 +49,9 @@
               </a-menu-item>
             </a-menu>
           </template>
-          <a-button>
-            {{ formState.windowName }}
+          <a-input v-model:value="formState.windowName">
             <DownOutlined/>
-          </a-button>
+          </a-input>
         </a-dropdown>
       </a-form-item>
       <a-form-item
