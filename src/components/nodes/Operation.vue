@@ -41,11 +41,11 @@
     <a-form-item>
       <div>检测目标</div>
       <div style="display: flex; flex-direction: column; align-items: flex-start">
+        <upload-image v-model:filePath="formState.locate"></upload-image>
+        或
         <a-button @click="cutLocate">
           从示例图中截取
         </a-button>
-        或
-        <upload-image v-model:filePath="formState.locate"></upload-image>
         <a-input-number
             v-model:value="formState.locate_accuracy"
             style="width: 200px"

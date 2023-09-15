@@ -49,10 +49,9 @@
               </a-menu-item>
             </a-menu>
           </template>
-          <a-button>
-            {{ formState.windowName }}
+          <a-input v-model:value="formState.windowName">
             <DownOutlined/>
-          </a-button>
+          </a-input>
         </a-dropdown>
       </a-form-item>
       <a-form-item
@@ -230,6 +229,7 @@ function runJob(e, force, nodeId) {
   axios.post(conf.host + '/job/run/' + props.job.id, {force: force, node_id: nodeId})
       .then(function (response) {
         message.success('请求成功')
+        clearInterval(timer)
         timer = setInterval(getMqStatus, 3000)
       })
       .catch(function (error) {
