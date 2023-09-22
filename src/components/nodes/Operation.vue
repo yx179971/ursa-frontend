@@ -36,6 +36,7 @@
     <div class="ant-form-item">
       <div>示例图</div>
       <upload-image v-model:filePath="formState.background"></upload-image>
+      <a-button @click="editBackground">编辑</a-button>
     </div>
 
     <a-form-item>
@@ -127,6 +128,7 @@
        @ok="handleMarkLocate"></Cut>
   <Cut type="cut" v-model:visible="cutTargetVisible" :imgUrl="imgUrl" @ok="handleCutTarget"></Cut>
   <Cut type="cut" v-model:visible="cutLocateVisible" :imgUrl="imgUrl" @ok="handleCutLocate"></Cut>
+  <Edit v-model:visible="editVisible" :imgUrl="imgUrl" @ok="handleEdit"></Edit>
 </template>
 
 <script setup lang="ts">
@@ -134,6 +136,7 @@ import {inject, ref, watch} from 'vue';
 import conf from '../../conf.js'
 import Cut from '../Cut.vue'
 import UploadImage from '../UploadImage.vue'
+import Edit from "@/components/Edit.vue";
 
 const emit = defineEmits(['close'])
 
@@ -207,6 +210,7 @@ const markImageVisible = ref(false)
 const markLocateVisible = ref(false)
 const cutLocateVisible = ref(false)
 const cutTargetVisible = ref(false)
+const editVisible = ref(false)
 const imgUrl = ref('')
 watch(
     () => formState.value.background,
@@ -231,6 +235,10 @@ function cutTarget() {
   cutTargetVisible.value = true
 }
 
+function editBackground() {
+  editVisible.value = true
+}
+
 function handleMarkImage(rect, imgUrl) {
   formState.value.rect = rect
 }
@@ -245,6 +253,10 @@ function handleCutLocate(rect, imgUrl) {
 
 function handleCutTarget(rect, imgUrl) {
   formState.value.target = imgUrl
+}
+
+function handleEdit(imgUrl) {
+  formState.value.background = imgUrl
 }
 
 </script>

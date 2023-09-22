@@ -4,6 +4,8 @@ on:
   push:
     branches:
       - main
+    paths:
+      - .github/workflows/electron-build.yml
 
 jobs:
   build_backend:
